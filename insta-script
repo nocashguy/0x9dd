@@ -16,6 +16,7 @@ let cssDiv;
 let switchDiv;
 let appID;
 const warning_message = 'Generating user\'s statistics might not work due to <a href="https://github.com/russdreamer/instagram-followers-statistics/issues/14" target="_blank" style="color: lightgrey;">instagram bug</a>';
+// Removed external API endpoint
 const escapeHTMLPolicy = typeof trustedTypes !== 'undefined'? trustedTypes.createPolicy("escapePolicy", {
     createHTML: (html) => html
   }) : null;
@@ -341,4 +342,328 @@ async function doMassAction(actType) {
 }
 
 async function getTotalUsersNumber(provided_username) {
-  const user_info =
+  const user_info = await getUserInfo(provided_username);
+  const followers_num = user_info.edge_followed_by.count;
+  const following_num = user_info.edge_follow.count;
+  return followers_num + following_num;
+}
+
+async function getUserInfo(provided_username) {
+  const username = provided_username? provided_username: getUsername();
+  const appID = await getAppId();
+
+  const url = "https://www.instagram.com/api/v1/users/web_profile_info/?username=" + username;
+  const body = {
+        method: 'GET',
+        headers: {
+          "x-ig-app-id": appID,
+          "x-ig-www-claim": sessionStorage["www-claim-v2"],
+          'x-csrftoken': getCSRFToken(),
+          'x-instagram-ajax': getRolloutHash(),
+        },
+        "referrer": "https://www.instagram.com/",
+        "referrerPolicy": "strict-origin-when-cross-origin",
+        "credentials": "include"
+      };
+
+  let delaySleep = 50;
+  dynamicSleep(delaySleep);
+
+  let response = await fetch(url, body);
+  if (!response.ok) {
+      if (response.status == 429) {
+        let waitDelay = 5 * 60000;
+        while (response.status == 429) {
+          await dynamicSleep(waitDelay);
+          waitDelay *= 2;
+          response = await fetch(url, body);
+        }
+        delaySleep *= 2;
+      } else throw new Error('Can not get followers.');
+    }
+
+  const json = await response.json();
+  if (json == null || json.status != "ok") {
+    throw new Error("Number of followers is not found. Make sure the given Username exists and you are logged in.");
+  }
+  return json.data.user;
+}
+
+async function getFriendshipStatuses(ids) {
+  const body = 'user_ids=' + encodeURIComponent(ids.join());
+  let url = 'https://www.instagram.com/api/v1/friendships/show_many/';
+  const appID = await getAppId(); 
+
+  let response = await fetch(
+    encodeURI(url),
+    {
+      "headers": {
+        "content-type": "application/x-www-form-urlencoded",
+        "x-ig-app-id": appID,
+        "x-ig-www-claim": sessionStorage["www-claim-v2"],
+        'x-csrftoken': getCSRFToken(),
+          'x-instagram-ajax': getRolloutHash(),
+        },
+      "body": body,
+      "method": "POST",
+      "credentials": "include"
+    });
+
+  if (!response.ok) {
+    if (response.status == 429) {
+      let waitDelay = 5 * 60000;
+      while (response.status == 429) {
+        await dynamicSleep(waitDelay);
+        waitDelay *= 2;
+        response = await fetch(
+          encodeURI(url),
+          {
+            "headers": {
+              "x-ig-app-id": appID,
+              "x-ig-www-claim": sessionStorage["www-claim-v2"],
+              'x-csrftoken': getCSRFToken(),
+                'x-instagram-ajax': getRolloutHash(),
+              },
+            "body": body,
+            "method": "POST",
+            "credentials": "include"
+          });
+      }
+      delaySleep *= 2;
+    } else throw new Error('Can not get friendship_statuses list.');
+  }
+
+  let jsonResp = await response.json();
+  jsonResp = jsonResp.status == "ok"?  jsonResp: null;
+  if (jsonResp == null) throw new Error('Can not find friendship_statuses list.');
+  return jsonResp.friendship_statuses;
+}
+
+async function randomFollowAccounts(action) {
+  const id = await getUserId();
+  // Removed sendAction call
+
+  let resp = null;
+  let hasNext = true;
+  let seenIds = [];
+
+  while(hasNext && action.completed < action.quantity && !action.isAborted) {
+    const rest = action.quantity - action.completed;
+    resp = await getSuggestedUsersBatch(seenIds, rest);
+    if (resp == null) {
+      hideLoader(action);
+      throw new Error('Cannot follow accounts.');
+    }
+    seenIds = resp.max_id;
+    hasNext = resp.groups.length > 0 && resp.groups[0].items.length > 0;
+    if (hasNext) {
+      const listTofollow = resp.groups[0].items.map(it => it.user);
+      await followUnfollowArray(listTofollow, action);
+    }
+  }
+}
+
+async function getUnrequitedAccounts(edges, numberToProceed) {
+  let unrequitedAccounts = [];
+
+  for (let user of edges) {
+    if (unrequitedAccounts.length >= numberToProceed) break;
+    const user_info = await getUserInfo(user.username);
+    if (!user_info.follows_viewer) unrequitedAccounts.push(user);
+  }
+
+  return unrequitedAccounts;
+}
+
+async function unfollowUnrequitedAccounts(action) {
+  const id = await getUserId();
+  // Removed sendAction call
+  selectorName = "following";
+  let resp = null;
+  let hasNext = true;
+  let nextMaxId;
+
+  while(hasNext && action.completed < action.quantity && !action.isAborted) {
+    const totalUsersNumber = await getTotalUsersNumber();
+    const rest = action.quantity - action.completed;
+    resp = await getFollowUsersBatch(selectorName, id, totalUsersNumber, nextMaxId);
+    if (resp == null) {
+      hideLoader(action);
+      throw new Error('Can not unfollow accounts.');
+    }
+    nextMaxId = resp.next_max_id;
+    hasNext = nextMaxId != undefined;
+    const listToUnfollow = await getUnrequitedAccounts(resp.users, rest);
+    await followUnfollowArray(listToUnfollow, action);
+  }
+}
+
+async function unfollowMutualAccounts(action) {
+  const id = await getUserId();
+  // Removed sendAction call
+  let selectorName = "followers";
+  let resp = null;
+  let hasNext = true;
+  let nextMaxId;
+  
+  while(hasNext && action.completed < action.quantity && !action.isAborted) {
+    const totalUsersNumber = await getTotalUsersNumber();
+    resp = await getFollowUsersBatch(selectorName, id, totalUsersNumber, nextMaxId, 'follow_list_page');
+    if (resp == null) {
+      hideLoader(action);
+      throw new Error('Can not unfollow accounts.');
+    }
+    nextMaxId = resp.next_max_id;
+    hasNext = nextMaxId != undefined;
+    const ids = resp.users.map(user => user.pk);
+    const friendshipstatuses = await getFriendshipStatuses(ids);
+    const listToUnfollow = resp.users.filter(user => friendshipstatuses[user.pk] && (friendshipstatuses[user.pk].following));
+    await followUnfollowArray(listToUnfollow, action);
+  }
+}
+
+async function unfollowAllAccounts(action) {
+  const id = await getUserId();
+  // Removed sendAction call
+  let selectorName = "following";
+  let resp = null;
+  let hasNext = true;
+  let nextMaxId;
+
+  while(hasNext && action.completed < action.quantity && !action.isAborted) {
+    const rest = action.quantity - action.completed;
+    resp = await getFollowUsersBatch(selectorName, id, rest, nextMaxId);
+    if (resp == null) {
+      hideLoader(action);
+      throw new Error('Can not unfollow accounts.');
+    }
+    nextMaxId = resp.next_max_id;
+    hasNext = nextMaxId != undefined;
+    await followUnfollowArray(resp.users, action);
+  }
+}
+
+async function getFollowUsersBatch(selectorName, id, totalUsersNumber, nextMaxId, search_surface) {
+  const url = `https://www.instagram.com/api/v1/friendships/${id}/${selectorName}/?count=100${nextMaxId? '&max_id=' + nextMaxId: ''}${search_surface? '&search_surface=' + search_surface: ''}`;
+  return await getUsersBatch(url);
+}
+
+
+async function getSuggestedUsersBatch(seenIds, totalUsersNumber) {
+  const url = 'https://www.instagram.com/api/v1/discover/ayml/';
+  const body = `max_id=${encodeURI(seenIds)}&max_number_to_display=${totalUsersNumber}&module=discover_people&paginate=true`
+  return await getUsersBatch(url, body);
+}
+
+async function getUsersBatch(url, body) {
+  let resp;
+  const appID = await getAppId();
+
+  const response = await fetch(
+    encodeURI(url),
+    {
+      "headers": {
+        "content-type": "application/x-www-form-urlencoded",
+        "x-ig-app-id": appID,
+        "x-ig-www-claim": sessionStorage["www-claim-v2"],
+        'x-csrftoken': getCSRFToken(),
+          'x-instagram-ajax': getRolloutHash(),
+        },
+      "body": body,
+      "method": body? "POST" : "GET",
+      "credentials": "include"
+    });
+  const jsonResp = await response.json();
+  if (jsonResp.status == "ok") {
+    return jsonResp;
+  } else {
+    console.error(jsonResp);
+    return null;
+  }
+  return jsonResp.status == "ok"? jsonResp: null;
+}
+
+async function followUnfollowArray(users, action) {
+  let actionName = (action.actionType == actionType.FOLLOW)? "follow": "unfollow";
+
+  for (let i = 0; (i < users.length) && (action.completed < action.quantity); i++) {
+    if (i != 0) {
+      await dynamicSleep(action.delay);
+    }
+    if (action.isAborted) return false;
+    let res = await followOrUnfollowUser(users[i], actionName);
+    
+    if (!res.ok) {
+      if (res.status == 429 && action.isAutoReconnect) {
+        action.userDelay *= 2;
+        let waitDelay = 60 * 60000;
+        while (!res.ok) {
+          await dynamicSleep(waitDelay);
+          waitDelay *= 2;
+          res = await followOrUnfollowUser(users[i], actionName);
+        }
+      } else {
+        action.isAborted = true;
+        hideLoader(action);
+        if (currentAction === action) {
+          showError(new Error("Too many actions. Try again a little bit later with bigger delay"));
+        }
+        return false;
+      }
+    }
+    action.completed++;
+    changeProgressText(action.completed  + " of " + action.quantity);
+  }
+
+  return true;
+}
+
+async function followOrUnfollowUser(user, actionName) {
+  const id = user.pk;
+
+  const appID = await getAppId();
+  const res = await fetch('https://www.instagram.com/web/friendships/' + id + '/' + actionName + '/', {
+      method: 'POST',
+    credentials: "include",
+      headers: {
+        'Content-Type': 'application/json',
+        'x-csrftoken': getCSRFToken(),
+        'x-instagram-ajax': getRolloutHash(),
+      "x-ig-app-id": appID,
+      "x-ig-www-claim": sessionStorage["www-claim-v2"]
+      }
+  });
+  return res;
+}
+
+function dynamicSleep(ms) {
+  const min = ms * 0.8;
+    const max = ms / 0.8;
+    const diff = max - min;
+  const time = Math.floor(Math.random() * diff + min);
+    return new Promise(resolve => setTimeout(resolve, time));
+}
+
+// Removed sendAction function
+
+function getSubActionPanel(actionType) {
+  const sub_panel = document.createElement('DIV');
+  sub_panel.setAttribute("class", "action_panel");
+
+  const title = document.createElement('SPAN');
+  title.setAttribute("class", "info");
+  title.setAttribute("style", "text-decoration: underline");
+  title.innerHTML = innerHTML(getTitleFromAction(actionType));
+
+  const wrapper = document.createElement('DIV');
+  wrapper.setAttribute("class", "flex-column");
+  wrapper.setAttribute("style", "align-items:center");
+
+  const quantity_label = document.createElement('LABEL');
+  quantity_label.setAttribute("for", "quantity");
+  quantity_label.setAttribute("class", "info");
+  quantity_label.setAttribute("style", "text-align:center");
+  quantity_label.innerHTML = innerHTML("Quantity of Accounts:");
+  const quantity_input = document.createElement('INPUT');
+  quantity_input.setAttribute("type", "number");
+  quantity_input.setAttribute("id",
