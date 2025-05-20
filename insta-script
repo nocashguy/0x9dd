@@ -16,9 +16,8 @@ let cssDiv;
 let switchDiv;
 let appID;
 
-// REMOVED: External URL and tracking
-// const mURL = 'https://gga3q6ztt2.execute-api.eu-north-1.amazonaws.com/petmetrics/instagram/';
-const warning_message = 'This is a privacy-enhanced version that does not send any data to external servers.';
+// REMOVED: External tracking URL - Privacy enhanced
+const warning_message = 'Privacy Enhanced Version - No data is sent to external servers';
 
 const escapeHTMLPolicy = typeof trustedTypes !== 'undefined'? trustedTypes.createPolicy("escapePolicy", {
     createHTML: (html) => html
@@ -57,7 +56,7 @@ function createSwitcher() {
   switchDiv.setAttribute("style", "position: fixed;z-index: 5;");
   const switchBtn = document.createElement("BUTTON");
   switchBtn.setAttribute("style", "background-color: #0095f6;color: white;border-radius: 4px;border-width: 0px;padding: 5px;font-weight: bold;margin: 0;cursor: pointer;");
-  switchBtn.textContent = "Open Instagram Analytics";
+  switchBtn.textContent = "Open app";
   switchBtn.addEventListener('click', () => manageSwitcher(switchBtn));
   switchDiv.appendChild(switchBtn);
   document.documentElement.prepend(switchDiv);
@@ -68,13 +67,13 @@ function manageSwitcher(switchBtn) {
     document.body.setAttribute("style", "display: none");
       loadCSS();
       start();
-      switchBtn.textContent = "Close Analytics";
+      switchBtn.textContent = "Close app";
       document.addEventListener('keydown', listenKeyPress);
   } else {
     document.body.style.display="";
     root.remove();
     cssDiv.remove();
-    switchBtn.textContent = "Open Instagram Analytics";
+    switchBtn.textContent = "Open app";
     document.removeEventListener('keydown', listenKeyPress);
   }
 }
@@ -85,7 +84,7 @@ function innerHTML(text) {
 
 function showError(error) {
   errorDiv.style.display = "grid";
-  errortitle.innerHTML = innerHTML("Error: " + error.message);
+  errortitle.innerHTML = innerHTML("Error: " + (error.message || error));
 }
 
 function clearError(error) {
@@ -143,7 +142,7 @@ async function generateListWithStat(stat) {
 
 function loadCSS() {
   cssDiv = document.createElement('STYLE');
-  const css = '.flex-column {display: flex;flex-direction: column;} #root {display: flex;align-items: center;flex-direction: column;} #content {padding: 20px}#script_root {background: #2c5282;justify-content: space-between;overflow: hidden;border-radius: 25px;border: 2px solid #4299e1;width: fit-content;max-width: 70vw;height: fit-content;}.button_round {width: fit-content;margin-top:10px;margin-bottom: 20px;box-shadow: 3px 4px 0px 0px #2d3748;background:linear-gradient(to bottom, #4299e1 5%, #3182ce 100%);background-color:#4299e1;border-radius:15px;border:1px solid #2b6cb0;display:inline-block;cursor:pointer;color:#ffffff;font-family:Arial;font-size:17px;padding:7px 25px;text-decoration:none;text-shadow:0px 1px 0px #1a365d;}.button_round:hover {background:linear-gradient(to bottom, #3182ce 5%, #4299e1 100%);background-color:#3182ce;}.button_round:active {position:relative;top:1px;}.tab {overflow-x: auto;white-space: nowrap;display: block;border: 1px solid #ccc;background-color: #f1f1f1;}.tab button {background-color: inherit;border: none;outline: none;cursor: pointer;padding: 14px 16px;transition: 0.3s;font-size: 17px;}.tab button:hover {background-color: #ddd;}.tab button.active {background-color: #ccc;}.tabcontent {background: white;overflow-y: scroll;max-height: 500px;display: none;padding: 6px 12px;border: 1px solid #ccc;border-top: none;}.sub_tabcontent {background: white;overflow-y: scroll;max-height: 500px;display: none;padding: 6px 12px;border: 1px solid #ccc;border-top: none;}.avatar {width: 60px;float:left}.user_content {display:table;padding:10px;font-size:15pt}.username {color: #3182ce}.user_row {width: fit-content; margin-top: 10px;display: block; cursor: pointer}.info {color: white;padding-top: 30px;font-weight: bold;font-size: 15pt;}.table_content {border-radius: 25px;overflow: hidden;width:fit-content;max-width:100%; margin-top:10px;}.load_container{display:none; position: absolute;left: 0;top: 0;align-items: center;flex-direction: column;justify-content: center;height: 100%;width: 100%;background-color: rgba(0, 0, 0, 0.8)}.loader {border: 16px solid #f3f3f3;border-radius: 50%;border-top: 16px solid #3498db;width: 120px;height: 120px;-webkit-animation: spin 2s linear infinite; /* Safari */animation: spin 1s linear infinite;}@-webkit-keyframes spin {0% { -webkit-transform: rotate(0deg); }100% { -webkit-transform: rotate(360deg); }}@keyframes spin {0% { transform: rotate(0deg); }100% { transform: rotate(360deg);}} .action_panel {overflow-y: scroll;align-self: center;background: #2c5282;width: 100%;height: 100%} .progress_number{color: white;position: absolute;font-weight: bold;}.tooltip {position: relative;display: inline-block;border-bottom: 1px dotted black;}.tooltip .tooltiptext {visibility: hidden;width: 200px;background-color: #555;color: #fff;text-align: center;border-radius: 6px;padding: 5px 0;position: absolute;z-index: 1;bottom: 125%;left: 50%;margin-left: -60px;opacity: 0;transition: opacity 0.3s;}.tooltip .tooltiptext::after {content: "";position: absolute;top: 100%;left: 50%;margin-left: -5px;border-width: 5px;border-style: solid;border-color: #555 transparent transparent transparent;}.tooltip:hover .tooltiptext {visibility: visible;opacity: 1;}.privacy-notice {background: #1a365d;color: #e2e8f0;padding: 15px;margin: 10px 0;border-radius: 8px;border-left: 4px solid #4299e1;}.privacy-notice h3 {color: #4299e1;margin-top: 0;}';
+  const css = '.flex-column {display: flex;flex-direction: column;} #root {display: flex;align-items: center;flex-direction: column;} #content {padding: 20px}#script_root {background: teal;justify-content: space-between;overflow: hidden;border-radius: 25px;border: 2px solid #35c7ac;width: fit-content;max-width: 70vw;height: fit-content;}.button_round {width: fit-content;margin-top:10px;margin-bottom: 20px;box-shadow: 3px 4px 0px 0px #899599;background:linear-gradient(to bottom, #ededed 5%, #bab1ba 100%);background-color:#ededed;border-radius:15px;border:1px solid #d6bcd6;display:inline-block;cursor:pointer;color:#0b4c5c;font-family:Arial;font-size:17px;padding:7px 25px;text-decoration:none;text-shadow:0px 1px 0px #e1e2ed;}.button_round:hover {background:linear-gradient(to bottom, #bab1ba 5%, #ededed 100%);background-color:#bab1ba;}.button_round:active {position:relative;top:1px;}.tab {overflow-x: auto;white-space: nowrap;display: block;border: 1px solid #ccc;background-color: #f1f1f1;}.tab button {background-color: inherit;border: none;outline: none;cursor: pointer;padding: 14px 16px;transition: 0.3s;font-size: 17px;}.tab button:hover {background-color: #ddd;}.tab button.active {background-color: #ccc;}.tabcontent {background: white;overflow-y: scroll;max-height: 500px;display: none;padding: 6px 12px;border: 1px solid #ccc;border-top: none;}.sub_tabcontent {background: white;overflow-y: scroll;max-height: 500px;display: none;padding: 6px 12px;border: 1px solid #ccc;border-top: none;}.avatar {width: 60px;float:left}.user_content {display:table;padding:10px;font-size:15pt}.username {color: darkcyan}.user_row {width: fit-content; margin-top: 10px;display: block; cursor: pointer}.info {color: white;padding-top: 30px;font-weight: bold;font-size: 15pt;}.table_content {border-radius: 25px;overflow: hidden;width:fit-content;max-width:100%; margin-top:10px;}.load_container{display:none; position: absolute;left: 0;top: 0;align-items: center;flex-direction: column;justify-content: center;height: 100%;width: 100%;background-color: rgba(0, 0, 0, 0.8)}.loader {border: 16px solid #f3f3f3;border-radius: 50%;border-top: 16px solid #3498db;width: 120px;height: 120px;-webkit-animation: spin 2s linear infinite; /* Safari */animation: spin 1s linear infinite;}@-webkit-keyframes spin {0% { -webkit-transform: rotate(0deg); }100% { -webkit-transform: rotate(360deg); }}@keyframes spin {0% { transform: rotate(0deg); }100% { transform: rotate(360deg);}} .action_panel {overflow-y: scroll;align-self: center;background: teal;width: 100%;height: 100%} .progress_number{color: white;position: absolute;font-weight: bold;}.tooltip {position: relative;display: inline-block;border-bottom: 1px dotted black;}.tooltip .tooltiptext {visibility: hidden;width: 200px;background-color: #555;color: #fff;text-align: center;border-radius: 6px;padding: 5px 0;position: absolute;z-index: 1;bottom: 125%;left: 50%;margin-left: -60px;opacity: 0;transition: opacity 0.3s;}.tooltip .tooltiptext::after {content: "";position: absolute;top: 100%;left: 50%;margin-left: -5px;border-width: 5px;border-style: solid;border-color: #555 transparent transparent transparent;}.tooltip:hover .tooltiptext {visibility: visible;opacity: 1;}';
   cssDiv.innerHTML = innerHTML(css);
   document.head.appendChild(cssDiv);
 }
@@ -267,12 +266,6 @@ function generateMassActionsPanel() {
   panel.setAttribute("class", "flex-column");
   panel.setAttribute("id", "actions_list");
 
-  // Privacy warning for mass actions
-  const privacyWarning = document.createElement('DIV');
-  privacyWarning.setAttribute("class", "privacy-notice");
-  privacyWarning.innerHTML = innerHTML('<h3>⚠️ Privacy & Safety Notice</h3><p>Mass actions are performed locally and no data is sent to external servers. However, please use these features responsibly as Instagram may limit or suspend accounts for excessive automated activity.</p>');
-  panel.appendChild(privacyWarning);
-
   const follow_btn = document.createElement("BUTTON");
   follow_btn.setAttribute("class", "button_round");
   follow_btn.addEventListener("click", ()=> openActionPanel(actionType.FOLLOW));
@@ -307,7 +300,7 @@ function openActionPanel(actionType) {
   document.getElementById("actions_list").style.display = "none";
   content.appendChild(action_panel);
   if (isFirstLaunch) {
-    alert("Privacy Notice: This tool runs entirely locally and doesn't send any data to external servers.\n\nSafety Warning: If your delay is small or quantity of accounts is too big - Instagram can block your actions for a short time (usually 10-60 minutes). If you do it too often - you can be blocked permanently for violating their terms. I advise you to specify no more than 200 accounts per day with the appropriate delay. But it depends on your account and Instagram algorithms.");
+    alert("Privacy Enhanced: This script does not send any data to external servers.\n\nWarning! If your delay is small or quantity of accounts is too big - Instagram can block your actions for a short time (usually 10-60 minutes). If you do it too often - you can be blocked permanently for violating their terms. I advise you to specify no more than 200 accounts per day with the appropriate delay. But it depends on your account and Instagram algorithms.");
     isFirstLaunch = false;
   }
 }
@@ -376,7 +369,7 @@ async function getUserInfo(provided_username) {
       };
 
   let delaySleep = 50;
-  dynamicSleep(delaySleep);
+  await dynamicSleep(delaySleep);
 
   let response = await fetch(url, body);
   if (!response.ok) {
@@ -438,7 +431,6 @@ async function getFriendshipStatuses(ids) {
             "credentials": "include"
           });
       }
-      delaySleep *= 2;
     } else throw new Error('Can not get friendship_statuses list.');
   }
 
@@ -450,8 +442,7 @@ async function getFriendshipStatuses(ids) {
 
 async function randomFollowAccounts(action) {
   const id = await getUserId();
-  // REMOVED: External data sending
-  // sendAction();
+  // REMOVED: sendAction(); - No external tracking
 
   let resp = null;
   let hasNext = true;
@@ -474,7 +465,6 @@ async function randomFollowAccounts(action) {
 }
 
 async function getUnrequitedAccounts(edges, numberToProceed) {
-  let resp = null;
   let unrequitedAccounts = [];
 
   for (let user of edges) {
@@ -488,9 +478,8 @@ async function getUnrequitedAccounts(edges, numberToProceed) {
 
 async function unfollowUnrequitedAccounts(action) {
   const id = await getUserId();
-  // REMOVED: External data sending
-  // sendAction();
-  selectorName = "following";
+  // REMOVED: sendAction(); - No external tracking
+  let selectorName = "following";
   let resp = null;
   let hasNext = true;
   let nextMaxId;
@@ -512,8 +501,7 @@ async function unfollowUnrequitedAccounts(action) {
 
 async function unfollowMutualAccounts(action) {
   const id = await getUserId();
-  // REMOVED: External data sending
-  // sendAction();
+  // REMOVED: sendAction(); - No external tracking
   let selectorName = "followers";
   let resp = null;
   let hasNext = true;
@@ -537,8 +525,7 @@ async function unfollowMutualAccounts(action) {
 
 async function unfollowAllAccounts(action) {
   const id = await getUserId();
-  // REMOVED: External data sending
-  // sendAction();
+  // REMOVED: sendAction(); - No external tracking
   let selectorName = "following";
   let resp = null;
   let hasNext = true;
@@ -569,7 +556,6 @@ async function getSuggestedUsersBatch(seenIds, totalUsersNumber) {
 }
 
 async function getUsersBatch(url, body) {
-  let resp;
   const appID = await getAppId();
 
   const response = await fetch(
@@ -593,7 +579,6 @@ async function getUsersBatch(url, body) {
     console.error(jsonResp);
     return null;
   }
-  return jsonResp.status == "ok"? jsonResp: null;
 }
 
 async function followUnfollowArray(users, action) {
@@ -608,7 +593,7 @@ async function followUnfollowArray(users, action) {
     
     if (!res.ok) {
       if (res.status == 429 && action.isAutoReconnect) {
-        action.userDelay *= 2;
+        action.delay *= 2;
         let waitDelay = 60 * 60000;
         while (!res.ok) {
           await dynamicSleep(waitDelay);
@@ -633,7 +618,6 @@ async function followUnfollowArray(users, action) {
 
 async function followOrUnfollowUser(user, actionName) {
   const id = user.pk;
-
   const appID = await getAppId();
   const res = await fetch('https://www.instagram.com/web/friendships/' + id + '/' + actionName + '/', {
       method: 'POST',
@@ -657,6 +641,41 @@ function dynamicSleep(ms) {
     return new Promise(resolve => setTimeout(resolve, time));
 }
 
-// REMOVED: External data sending function
-// async function sendAction() {
-//   var actionMessage  = JSON.stringify(["mURL", `${mURL}${getViewerId()}`]);
+// REMOVED: External tracking function
+// async function sendAction() { ... }
+
+function getSubActionPanel(actionType) {
+  const sub_panel = document.createElement('DIV');
+  sub_panel.setAttribute("class", "action_panel");
+
+  const title = document.createElement('SPAN');
+  title.setAttribute("class", "info");
+  title.setAttribute("style", "text-decoration: underline");
+  title.innerHTML = innerHTML(getTitleFromAction(actionType));
+
+  const wrapper = document.createElement('DIV');
+  wrapper.setAttribute("class", "flex-column");
+  wrapper.setAttribute("style", "align-items:center");
+
+  const quantity_label = document.createElement('LABEL');
+  quantity_label.setAttribute("for", "quantity");
+  quantity_label.setAttribute("class", "info");
+  quantity_label.setAttribute("style", "text-align:center");
+  quantity_label.innerHTML = innerHTML("Quantity of Accounts:");
+  const quantity_input = document.createElement('INPUT');
+  quantity_input.setAttribute("type", "number");
+  quantity_input.setAttribute("id", "quantity");
+  quantity_input.setAttribute("min", "1");
+
+  const checkBoxWrapper = document.createElement('DIV');
+  checkBoxWrapper.setAttribute("style", "display: block");
+  const tooltip = document.createElement('DIV');
+  tooltip.setAttribute("class", "tooltip");
+  const checkbox = document.createElement('INPUT');
+  checkbox.setAttribute("id", "autoreconect");
+  checkbox.setAttribute("type", "checkbox");
+  const checkboxLabel = document.createElement('LABEL');
+  checkboxLabel.setAttribute("for", "autoreconect");
+  checkboxLabel.setAttribute("class", "info");
+  checkboxLabel.innerHTML = innerHTML("auto reconnect");
+  const tooltipText =
