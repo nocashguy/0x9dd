@@ -1,0 +1,344 @@
+let root;
+let scriptRoot;
+let content;
+let warningDiv;
+let warningTitle;
+let intro;
+let statistics;
+let loader_wrapper;
+let action_panel;
+let errorDiv;
+let errortitle;
+let textFile = null;
+let isFirstLaunch = true;
+let currentAction;
+let cssDiv;
+let switchDiv;
+let appID;
+const warning_message = 'Generating user\'s statistics might not work due to <a href="https://github.com/russdreamer/instagram-followers-statistics/issues/14" target="_blank" style="color: lightgrey;">instagram bug</a>';
+const escapeHTMLPolicy = typeof trustedTypes !== 'undefined'? trustedTypes.createPolicy("escapePolicy", {
+    createHTML: (html) => html
+  }) : null;
+
+const actionType = {
+    FOLLOW:"FOLLOW",
+    UNFOLLOW_ALL:"UNFOLLOW_ALL",
+    UNFOLLOW_MUTUAL:"UNFOLLOW_MUTUAL",
+    UNFOLLOW_UNREQUITED:"UNFOLLOW_UNREQUITED"
+};
+
+class Action {
+  constructor(actionType, quantity, delay, isAutoReconnect) {
+    this.actionType = actionType;
+    this.quantity = quantity;
+    this.delay = delay;
+    this.isAutoReconnect = isAutoReconnect;
+    this.isAborted = false;
+    this.completed = 0;
+  }
+}
+
+window.onerror = (m, s, l, c, error) => showError(m);
+
+(function () {
+  try {
+    createSwitcher();
+  } catch (e) {
+      showError(e);
+  }
+})();
+
+function createSwitcher() {
+  switchDiv = document.createElement("DIV");
+  switchDiv.setAttribute("style", "position: fixed;z-index: 5;");
+  const switchBtn = document.createElement("BUTTON");
+  switchBtn.setAttribute("style", "background-color: #0095f6;color: white;border-radius: 4px;border-width: 0px;padding: 5px;font-weight: bold;margin: 0;cursor: pointer;");
+  switchBtn.textContent = "Open app";
+  switchBtn.addEventListener('click', () => manageSwitcher(switchBtn));
+  switchDiv.appendChild(switchBtn);
+  document.documentElement.prepend(switchDiv);
+}
+
+function manageSwitcher(switchBtn) {
+  if (root == null || root.parentNode == null) {
+    document.body.setAttribute("style", "display: none");
+      loadCSS();
+      start();
+      switchBtn.textContent = "Close app";
+      document.addEventListener('keydown', listenKeyPress);
+  } else {
+    document.body.style.display="";
+    root.remove();
+    cssDiv.remove();
+    switchBtn.textContent = "Open app";
+    document.removeEventListener('keydown', listenKeyPress);
+  }
+}
+
+function innerHTML(text) {
+  return escapeHTMLPolicy !== null? escapeHTMLPolicy.createHTML(text) : text;
+}
+
+function showError(error) {
+  errorDiv.style.display = "grid";
+  errortitle.innerHTML = innerHTML("Error: " + error.message);
+}
+
+function clearError(error) {
+  errorDiv.style.display = "none";
+  errortitle.innerHTML = innerHTML("");
+}
+
+function User(node) {
+  this.full_name = node.full_name;
+  this.id = node.pk;
+  this.profile_pic_url = node.profile_pic_url;
+  this.username = node.username;
+}
+
+function StatMap(newFollowers, newUnfollowers, newFollowing, newUnfollowing, date) {
+  this.date = date;
+  this.followers = newFollowers;
+  this.unfollowers = newUnfollowers;
+  this.following = newFollowing;
+  this.unfollowing = newUnfollowing;
+}
+
+function Statistics(lastFollowers, lastFollowing, ownerID) {
+  this.ownerID = ownerID;
+  this.lastFollowers = lastFollowers;
+  this.lastFollowing = lastFollowing;
+  this.statMaps = [];
+}
+
+function readSingleFile(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var contents = e.target.result;
+    const stat = JSON.parse(contents);
+    stat.lastFollowers = new Map(stat.lastFollowers);
+    stat.lastFollowing = new Map(stat.lastFollowing);
+    generateListWithStat(stat);
+  };
+  reader.readAsText(file);
+}
+
+async function generateListWithStat(stat) {
+    let action = new Action();
+    action.quantity = 0;
+    currentAction = action;
+    showLoader();
+    await generateNextList(stat, action).catch(e => {
+      document.getElementById("file-input").value = "";
+      showError(e)
+    });
+    hideLoader(action);
+}
+
+function loadCSS() {
+  cssDiv = document.createElement('STYLE');
+  const css = '.flex-column {display: flex;flex-direction: column;} #root {display: flex;align-items: center;flex-direction: column;} #content {padding: 20px}#script_root {background: teal;justify-content: space-between;overflow: hidden;border-radius: 25px;border: 2px solid #35c7ac;width: fit-content;max-width: 70vw;height: fit-content;}.button_round {width: fit-content;margin-top:10px;margin-bottom: 20px;box-shadow: 3px 4px 0px 0px #899599;background:linear-gradient(to bottom, #ededed 5%, #bab1ba 100%);background-color:#ededed;border-radius:15px;border:1px solid #d6bcd6;display:inline-block;cursor:pointer;color:#0b4c5c;font-family:Arial;font-size:17px;padding:7px 25px;text-decoration:none;text-shadow:0px 1px 0px #e1e2ed;}.button_round:hover {background:linear-gradient(to bottom, #bab1ba 5%, #ededed 100%);background-color:#bab1ba;}.button_round:active {position:relative;top:1px;}.tab {overflow-x: auto;white-space: nowrap;display: block;border: 1px solid #ccc;background-color: #f1f1f1;}.tab button {background-color: inherit;border: none;outline: none;cursor: pointer;padding: 14px 16px;transition: 0.3s;font-size: 17px;}.tab button:hover {background-color: #ddd;}.tab button.active {background-color: #ccc;}.tabcontent {background: white;overflow-y: scroll;max-height: 500px;display: none;padding: 6px 12px;border: 1px solid #ccc;border-top: none;}.sub_tabcontent {background: white;overflow-y: scroll;max-height: 500px;display: none;padding: 6px 12px;border: 1px solid #ccc;border-top: none;}.avatar {width: 60px;float:left}.user_content {display:table;padding:10px;font-size:15pt}.username {color: darkcyan}.user_row {width: fit-content; margin-top: 10px;display: block; cursor: pointer}.info {color: white;padding-top: 30px;font-weight: bold;font-size: 15pt;}.table_content {border-radius: 25px;overflow: hidden;width:fit-content;max-width:100%; margin-top:10px;}.load_container{display:none; position: absolute;left: 0;top: 0;align-items: center;flex-direction: column;justify-content: center;height: 100%;width: 100%;background-color: rgba(0, 0, 0, 0.8)}.loader {border: 16px solid #f3f3f3;border-radius: 50%;border-top: 16px solid #3498db;width: 120px;height: 120px;-webkit-animation: spin 2s linear infinite; /* Safari */animation: spin 1s linear infinite;}@-webkit-keyframes spin {0% { -webkit-transform: rotate(0deg); }100% { -webkit-transform: rotate(360deg); }}@keyframes spin {0% { transform: rotate(0deg); }100% { transform: rotate(360deg);}} .action_panel {overflow-y: scroll;align-self: center;background: teal;width: 100%;height: 100%} .progress_number{color: white;position: absolute;font-weight: bold;}.tooltip {position: relative;display: inline-block;border-bottom: 1px dotted black;}.tooltip .tooltiptext {visibility: hidden;width: 200px;background-color: #555;color: #fff;text-align: center;border-radius: 6px;padding: 5px 0;position: absolute;z-index: 1;bottom: 125%;left: 50%;margin-left: -60px;opacity: 0;transition: opacity 0.3s;}.tooltip .tooltiptext::after {content: "";position: absolute;top: 100%;left: 50%;margin-left: -5px;border-width: 5px;border-style: solid;border-color: #555 transparent transparent transparent;}.tooltip:hover .tooltiptext {visibility: visible;opacity: 1;}';
+  cssDiv.innerHTML = innerHTML(css);
+  document.head.appendChild(cssDiv);
+}
+
+function getMutual(followersMap, followingsMap) {
+  const mutual = [];
+  let smallerMap;
+  let biggerMap 
+  if (followersMap.size < followingsMap.size) {
+    smallerMap = followersMap;
+    biggerMap = followingsMap;
+  } else {
+    smallerMap = followingsMap;
+    biggerMap = followersMap;
+  }
+
+  smallerMap.forEach((value, key) => {
+    if (biggerMap.has(key)) mutual.push(key);
+  });
+
+  return mutual;
+}
+
+function getFollowYou(followersMap, followingsMap) {
+  const followYou = [];
+
+  followersMap.forEach((value, key) => {
+    if (!followingsMap.has(key)) followYou.push(key);
+  });
+
+  return followYou;
+}
+
+function getYouFollow(followersMap, followingsMap) {
+  const youFollow = [];
+
+  followingsMap.forEach((value, key) => {
+    if (!followersMap.has(key)) youFollow.push(key);
+  });
+
+  return youFollow;
+}
+
+function usersMapToHTML(usersMap) {
+  const wrapDiv = document.createElement('DIV');
+  wrapDiv.setAttribute("class", "flex-column");
+
+  if (usersMap.size == 0) {
+    wrapDiv.innerHTML = innerHTML("Nobody during this period");
+  }
+
+  usersMap.forEach((value, key) => {
+    const user = value;
+    const userDiv = document.createElement('DIV');
+    userDiv.setAttribute("class", "user_row");
+    userDiv.addEventListener("click", ()=> window.open('https://www.instagram.com/' + user.username));
+    const avatar = document.createElement('IMG');
+    avatar.setAttribute("class", "avatar");
+    avatar.setAttribute("src", user.profile_pic_url);
+    avatar.setAttribute("alt", user.username);
+    userDiv.appendChild(avatar);
+    const userContent = document.createElement('DIV');
+    userContent.setAttribute("class", "user_content");
+    userContent.innerHTML = innerHTML('<b>' + user.full_name + '</b><br><span class="username">' + user.username + "</span>");
+    userDiv.appendChild(userContent);
+    wrapDiv.appendChild(userDiv);
+  });
+
+  return wrapDiv;
+}
+
+function extractUsersMap(usersArray, usersMap) {
+  const map = new Map();
+  usersArray.forEach(id => map.set(id, usersMap.get(id)));
+  return map;
+}
+
+function getPresNumber(number) {
+  if (number == 0) return number;
+
+  let num = number;
+  while (num >= 1000) {
+    num = num / 1000; 
+  }
+  const rate = number / num;
+  if (rate <= 1) {
+    return number;
+  } else if (rate <= 1000) {
+    return parseFloat(num.toFixed(1)) + "K";
+  } else if (rate <= 1000000) {
+    return parseFloat(num.toFixed(1)) + "M";
+  } else if (rate <= 1000000000) {
+    return parseFloat(num.toFixed(1)) + "B";
+  } else return parseFloat((number / 1000000000000).toFixed(1)) + "T";
+}
+
+function showLoader(text) {
+  if (text) {
+    changeProgressText(text);
+  } else {
+    changeProgressText("");
+  }
+  loader_wrapper.style.display = "flex";
+}
+
+function hideLoader(action) {
+  if (!action || action === currentAction) {
+    loader_wrapper.style.display = "none";
+  }
+}
+
+async function changeProgressText(text) {
+  let progress = document.getElementById("progress_number");
+  if (progress != null) {
+    progress.innerHTML = innerHTML(text);
+  }
+}
+
+function generateMassActionsPanel() {
+  const panel = document.createElement('DIV');
+  panel.setAttribute("class", "flex-column");
+  panel.setAttribute("id", "actions_list");
+
+  const follow_btn = document.createElement("BUTTON");
+  follow_btn.setAttribute("class", "button_round");
+  follow_btn.addEventListener("click", ()=> openActionPanel(actionType.FOLLOW));
+  follow_btn.textContent = "Follow random accounts...";
+
+  const all_unfollow_btn = document.createElement("BUTTON");
+  all_unfollow_btn.setAttribute("class", "button_round");
+  all_unfollow_btn.addEventListener("click", ()=> openActionPanel(actionType.UNFOLLOW_ALL));
+  all_unfollow_btn.textContent = "Unfollow everyone...";
+
+  const unrequited_unfollow_btn = document.createElement("BUTTON");
+  unrequited_unfollow_btn.setAttribute("class", "button_round");
+  unrequited_unfollow_btn.addEventListener("click", ()=> openActionPanel(actionType.UNFOLLOW_UNREQUITED));
+  unrequited_unfollow_btn.textContent = "Unfollow accounts that don't follow you back...";
+
+  const mutual_unfollow_btn = document.createElement("BUTTON");
+  mutual_unfollow_btn.setAttribute("class", "button_round");
+  mutual_unfollow_btn.addEventListener("click", ()=> openActionPanel(actionType.UNFOLLOW_MUTUAL));
+  mutual_unfollow_btn.textContent = "Unfollow accounts that you mutually follow...";
+
+  panel.appendChild(follow_btn);
+  panel.appendChild(all_unfollow_btn);
+  panel.appendChild(unrequited_unfollow_btn);
+  panel.appendChild(mutual_unfollow_btn);
+  panel.appendChild(getRestartBtn());
+
+  return panel;
+}
+
+function openActionPanel(actionType) {
+  action_panel = getSubActionPanel(actionType);
+  document.getElementById("actions_list").style.display = "none";
+  content.appendChild(action_panel);
+  if (isFirstLaunch) {
+    alert("Warning! If your delay is small or quantity of accounts is too big - Instagram can block your actions for a short time (usually 10-60 minutes). If you do it too often - you can be blocked permanently for violating their terms. I advise you to specify no more than 200 accounts per day with the appropriate delay. But it depends on your account and Instagram algorithms.");
+    isFirstLaunch = false;
+  }
+}
+
+function closeActionPanel() {
+  action_panel.remove();
+  document.getElementById("actions_list").style.display = "flex";
+  clearError();
+}
+
+function getTitleFromAction(act) {
+  switch (act) {
+    case actionType.FOLLOW: return "FOLLOW NEW ACCOUNTS";
+    case actionType.UNFOLLOW_MUTUAL: return "UNFOLLOW MUTUAL FOLLOWERS";
+    case actionType.UNFOLLOW_UNREQUITED: return "UNFOLLOW WHO DON'T FOLLOW BACK";
+    case actionType.UNFOLLOW_ALL: return "UNFOLLOW EVERYONE";
+  }
+}
+
+async function doMassAction(actType) {
+  const DEFAULT_TIME_SECONDS = 10 * 60000;
+  const DEFAULT_QUANTITY = 0;
+
+  clearError();
+  let quantity = document.getElementById("quantity").value;
+  let userDelay = document.getElementById("delay").value * 1000;
+  const isAutoReconnect = document.getElementById("autoreconect").checked;
+  quantity = (quantity != "") ? quantity: DEFAULT_QUANTITY;
+  userDelay = (userDelay != "") ? userDelay: DEFAULT_TIME_SECONDS;
+  showLoader("0 of " + quantity);
+
+  let action = new Action(actType, quantity, userDelay, isAutoReconnect);
+  currentAction = action;
+  switch (action.actionType) {
+    case actionType.FOLLOW: await randomFollowAccounts(action); break;
+    case actionType.UNFOLLOW_MUTUAL: await unfollowMutualAccounts(action); break;
+    case actionType.UNFOLLOW_UNREQUITED: await unfollowUnrequitedAccounts(action); break;
+    case actionType.UNFOLLOW_ALL: await unfollowAllAccounts(action); break;
+  }
+  hideLoader(action);
+}
+
+async function getTotalUsersNumber(provided_username) {
+  const user_info =
