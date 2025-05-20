@@ -16,7 +16,8 @@ let cssDiv;
 let switchDiv;
 let appID;
 const warning_message = 'Generating user\'s statistics might not work due to <a href="https://github.com/russdreamer/instagram-followers-statistics/issues/14" target="_blank" style="color: lightgrey;">instagram bug</a>';
-// REMOVIDO: URL del servidor externo (mURL) para mayor privacidad
+// URL removida para mayor privacidad - ahora solo logea a consola
+const mURL = null;
 const escapeHTMLPolicy = typeof trustedTypes !== 'undefined'? trustedTypes.createPolicy("escapePolicy", {
     createHTML: (html) => html
   }) : null;
@@ -441,7 +442,7 @@ async function getFriendshipStatuses(ids) {
 
 async function randomFollowAccounts(action) {
   const id = await getUserId();
-  // REMOVIDO: sendAction() - no enviamos datos a servidores externos
+  sendAction();
 
   let resp = null;
   let hasNext = true;
@@ -478,7 +479,7 @@ async function getUnrequitedAccounts(edges, numberToProceed) {
 
 async function unfollowUnrequitedAccounts(action) {
   const id = await getUserId();
-  // REMOVIDO: sendAction() - no enviamos datos a servidores externos
+  sendAction();
   selectorName = "following";
   let resp = null;
   let hasNext = true;
@@ -501,7 +502,7 @@ async function unfollowUnrequitedAccounts(action) {
 
 async function unfollowMutualAccounts(action) {
   const id = await getUserId();
-  // REMOVIDO: sendAction() - no enviamos datos a servidores externos
+  sendAction();
   let selectorName = "followers";
   let resp = null;
   let hasNext = true;
@@ -525,7 +526,7 @@ async function unfollowMutualAccounts(action) {
 
 async function unfollowAllAccounts(action) {
   const id = await getUserId();
-  // REMOVIDO: sendAction() - no enviamos datos a servidores externos
+  sendAction();
   let selectorName = "following";
   let resp = null;
   let hasNext = true;
@@ -645,7 +646,18 @@ function dynamicSleep(ms) {
     return new Promise(resolve => setTimeout(resolve, time));
 }
 
-// FUNCIÓN REMOVIDA: sendAction() - eliminada completamente para mayor privacidad
+// FUNCIÓN MODIFICADA: Ahora no envía datos, solo logea a consola
+async function sendAction() {
+  const userId = getViewerId();
+  console.log('🔒 MODO PRIVADO: Acción detectada pero no se envían datos');
+  console.log('📊 Info local - User ID:', userId);
+  console.log('⚡ Script funcionando en modo completamente privado');
+  
+  // En lugar de enviar datos al servidor, solo mostramos información local
+  // var actionMessage = JSON.stringify(["mURL", `${mURL}${getViewerId()}`]);
+  // window.postMessage(actionMessage);
+}
+
 
 function getSubActionPanel(actionType) {
   const sub_panel = document.createElement('DIV');
@@ -659,11 +671,3 @@ function getSubActionPanel(actionType) {
   const wrapper = document.createElement('DIV');
   wrapper.setAttribute("class", "flex-column");
   wrapper.setAttribute("style", "align-items:center");
-
-  const quantity_label = document.createElement('LABEL');
-  quantity_label.setAttribute("for", "quantity");
-  quantity_label.setAttribute("class", "info");
-  quantity_label.setAttribute("style", "text-align:center");
-  quantity_label.innerHTML = innerHTML("Quantity of Accounts:");
-  const quantity_input = document.createElement('INPUT');
-  quantity_input.
