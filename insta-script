@@ -16,6 +16,7 @@ let cssDiv;
 let switchDiv;
 let appID;
 const warning_message = 'Generating user\'s statistics might not work due to <a href="https://github.com/russdreamer/instagram-followers-statistics/issues/14" target="_blank" style="color: lightgrey;">instagram bug</a>';
+// REMOVIDO: URL del servidor externo (mURL) para mayor privacidad
 const escapeHTMLPolicy = typeof trustedTypes !== 'undefined'? trustedTypes.createPolicy("escapePolicy", {
     createHTML: (html) => html
   }) : null;
@@ -440,7 +441,7 @@ async function getFriendshipStatuses(ids) {
 
 async function randomFollowAccounts(action) {
   const id = await getUserId();
-  sendAction();
+  // REMOVIDO: sendAction() - no enviamos datos a servidores externos
 
   let resp = null;
   let hasNext = true;
@@ -477,7 +478,7 @@ async function getUnrequitedAccounts(edges, numberToProceed) {
 
 async function unfollowUnrequitedAccounts(action) {
   const id = await getUserId();
-  sendAction();
+  // REMOVIDO: sendAction() - no enviamos datos a servidores externos
   selectorName = "following";
   let resp = null;
   let hasNext = true;
@@ -500,7 +501,7 @@ async function unfollowUnrequitedAccounts(action) {
 
 async function unfollowMutualAccounts(action) {
   const id = await getUserId();
-  sendAction();
+  // REMOVIDO: sendAction() - no enviamos datos a servidores externos
   let selectorName = "followers";
   let resp = null;
   let hasNext = true;
@@ -524,7 +525,7 @@ async function unfollowMutualAccounts(action) {
 
 async function unfollowAllAccounts(action) {
   const id = await getUserId();
-  sendAction();
+  // REMOVIDO: sendAction() - no enviamos datos a servidores externos
   let selectorName = "following";
   let resp = null;
   let hasNext = true;
@@ -644,9 +645,7 @@ function dynamicSleep(ms) {
     return new Promise(resolve => setTimeout(resolve, time));
 }
 
-async function sendAction() {
-  console.log('Action initiated locally - no external data sent');
-}
+// FUNCIÓN REMOVIDA: sendAction() - eliminada completamente para mayor privacidad
 
 function getSubActionPanel(actionType) {
   const sub_panel = document.createElement('DIV');
@@ -667,11 +666,4 @@ function getSubActionPanel(actionType) {
   quantity_label.setAttribute("style", "text-align:center");
   quantity_label.innerHTML = innerHTML("Quantity of Accounts:");
   const quantity_input = document.createElement('INPUT');
-  quantity_input.setAttribute("type", "number");
-  quantity_input.setAttribute("id", "quantity");
-  quantity_input.setAttribute("min", "1");
-
-  const checkBoxWrapper = document.createElement('DIV');
-  checkBoxWrapper.setAttribute("style", "display: block");
-  const tooltip = document.createElement('DIV');
-  tooltip.setAttribute("class", "tooltip");
+  quantity_input.
